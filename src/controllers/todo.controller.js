@@ -3,32 +3,33 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { Todo } from "../models/todo.model.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 const createTodo = asyncHandler(async (req, res) => {
-  let { title, content, status, priority } = req.body;
+  let { title, content, status, priority, dueDate } = req.body;
   if (title) {
     title = title.trim();
   }
   if (!title) {
-    throw new ApiError(400, "title is required");
+    throw new ApiError(400, "Title is required");
   }
   const createdBy = req.user?._id;
   if (!createdBy) {
-    throw new ApiError(400, "user not logged in");
+    throw new ApiError(400, "User not logged in");
   }
 
   const todo = await Todo.create({
     title,
     content,
     status: status || "pending",
-    createdBy,
+    createdBy, // Store createdBy as _id
     priority,
+    dueDate,
   });
-  const createdTodo = await Todo.findById(todo?._id);
-  if (!createdTodo) {
-    throw new ApiError(400, "error while creating todo");
-  }
+
+  // Populate createdBy field with username before sending response
+  await todo.populate("createdBy", "username");
+
   return res
     .status(200)
-    .json(new ApiResponse(200, createdTodo, "todo created successfully"));
+    .json(new ApiResponse(200, todo, "Todo created successfully"));
 });
 
 const getTodoOfLoggedInUser = asyncHandler(async (req, res) => {
@@ -43,39 +44,49 @@ const getTodoOfLoggedInUser = asyncHandler(async (req, res) => {
 });
 
 const updateTodos = asyncHandler(async (req, res) => {
-  const { title, content, status, priority } = req.body;
-  if (!(title || content || status || priority)) {
-    throw new ApiError(400, "title or content or status is required");
+  const { title, content, status, priority, dueDate } = req.body;
+  const updateFields = {};
+
+  // Check and add each field to the update object if it exists
+  if (title) updateFields.title = title;
+  if (content) updateFields.content = content;
+  if (status) updateFields.status = status;
+  if (priority) updateFields.priority = priority;
+  if (dueDate) updateFields.dueDate = dueDate;
+
+  if (Object.keys(updateFields).length === 0) {
+    throw new ApiError(400, "At least one field is required for update");
   }
-  const todoStatus = ["pending", "completed", "in progress"];
-  if (!todoStatus.includes(status)) {
+
+  // Validate status if provided
+  if (
+    updateFields.status &&
+    !["pending", "completed", "in progress"].includes(updateFields.status)
+  ) {
     throw new ApiError(400, "Invalid status");
   }
-  const todoPriorty = ["low", "medium", "high"];
-  if (!todoPriorty.includes(priority)) {
-    throw new ApiError(400, "invalid priority");
+
+  // Validate priority if provided
+  if (
+    updateFields.priority &&
+    !["low", "medium", "high"].includes(updateFields.priority)
+  ) {
+    throw new ApiError(400, "Invalid priority");
   }
 
   const updatedTodo = await Todo.findByIdAndUpdate(
     req.params?._id,
-    {
-      $set: {
-        title: title,
-        content: content,
-        status: status,
-        priority: priority,
-      },
-    },
+    { $set: updateFields },
     { new: true }
   );
-  //   console.log(req.params?._id);
 
   if (!updatedTodo) {
     throw new ApiError(400, "Todo not found");
   }
+
   res
     .status(200)
-    .json(new ApiResponse(200, updatedTodo, "todo updated successfully"));
+    .json(new ApiResponse(200, updatedTodo, "Todo updated successfully"));
 });
 
 const deleteTodo = asyncHandler(async (req, res) => {

@@ -4,7 +4,7 @@ const todoSchema = new Schema(
   {
     createdBy: {
       type: Schema.Types.ObjectId,
-      ref: User,
+      ref: "User",
     },
     title: {
       type: String,
@@ -23,6 +23,9 @@ const todoSchema = new Schema(
       type: String,
       enum: ["low", "medium", "high"], // Define priority levels
       default: "low", // Default priority level
+    },
+    dueDate: {
+      type: Date,
     },
   },
   { timestamps: true }
