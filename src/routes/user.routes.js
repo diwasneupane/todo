@@ -9,6 +9,7 @@ import {
   updateUserDetails,
 } from "../controllers/user.controller.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
+import { searchTodo } from "../controllers/todo.controller.js";
 
 const router = Router();
 

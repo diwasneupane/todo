@@ -101,4 +101,27 @@ const deleteTodo = asyncHandler(async (req, res) => {
   }
 });
 
-export { createTodo, getTodoOfLoggedInUser, updateTodos, deleteTodo };
+const searchTodo = asyncHandler(async (req, res) => {
+  const { title } = req.query;
+  if (!title) {
+    throw new ApiError(400, "Title is required to search");
+  }
+  const createdBy = req.user?._id;
+  const query = {
+    createdBy,
+    title: { $regex: title, $options: "i" },
+  };
+  const todo = await Todo.find(query);
+  if (!todo || todo.length === 0) {
+    throw new ApiError(404, "Todo not found");
+  }
+  return res.status(200).json(new ApiResponse(200, todo, `${title}`));
+});
+
+export {
+  createTodo,
+  getTodoOfLoggedInUser,
+  updateTodos,
+  deleteTodo,
+  searchTodo,
+};
