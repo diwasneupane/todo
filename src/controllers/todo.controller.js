@@ -3,7 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { Todo } from "../models/todo.model.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 const createTodo = asyncHandler(async (req, res) => {
-  const { title, content, status, priority } = req.body;
+  let { title, content, status, priority } = req.body;
   if (title) {
     title = title.trim();
   }
